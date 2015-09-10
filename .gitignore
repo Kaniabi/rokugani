@@ -1,0 +1,5 @@
+*.pyc
+*_ui.py
+/.venv/
+/.idea/
+
