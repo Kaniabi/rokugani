@@ -1,3 +1,8 @@
+# Configure environment variables here so we can execute this script from inside PyCharm.
+import os
+os.environ['QTDIR'] = r'd:\shared\python3\lib\site-packages\PyQt5'
+os.environ['QT_PLUGIN_PATH'] = r'd:\shared\python3\lib\site-packages\PyQt5\plugins'
+os.environ['QML2_IMPORT_PATH'] = r'd:\shared\python3\lib\site-packages\PyQt5\qml'
 
 
 
@@ -14,7 +19,7 @@ class RokuganiApplication(object):
 
 
     def main(self, argv):
-        from rokugani.view.main_window import MainWindow
+        from rokugani.winapp.main_window import MainWindow
         from rokugani.model.character import CharacterModel
         from PyQt5 import QtWidgets, QtCore
 
@@ -145,12 +150,6 @@ class RokuganiApplication(object):
 
 
 if __name__ == '__main__':
-    import os
     import sys
-
-    os.environ['QTDIR'] = r'd:\shared\python3\lib\site-packages\PyQt5'
-    os.environ['QT_PLUGIN_PATH'] = r'd:\shared\python3\lib\site-packages\PyQt5\plugins'
-    os.environ['QML2_IMPORT_PATH'] = r'd:\shared\python3\lib\site-packages\PyQt5\qml'
-
     app = RokuganiApplication()
     sys.exit(app.main(sys.argv))

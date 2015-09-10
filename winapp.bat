@@ -7,4 +7,4 @@ set QML2_IMPORT_PATH=%QTDIR%\qml
 
 set PATH=%PYTHONHOME%;%PYTHONHOME%\Scripts;%PATH%
 
-python x:\rokugani\rokugani\main.py %*
+python x:\rokugani\rokugani\winapp\main.py %*
