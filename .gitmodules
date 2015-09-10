@@ -1,0 +1,3 @@
+[submodule "dal"]
+	path = dal
+	url = git@github.com:Kaniabi/l5rcm-data-access.git
