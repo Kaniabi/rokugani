@@ -219,6 +219,9 @@ class CharacterModel(object):
         self._model['xp'] = XpModel(self, 40)
 
 
+    def has_model(self, model_attr):
+        return model_attr in self._model
+
     def add_model(self, model_attr, model_class, *args, **kwargs):
         self._model[model_attr] = model_class(self, *args, **kwargs)
 
@@ -259,10 +262,7 @@ class CharacterModel(object):
         '''
         attr = self._model[model_attr]
         attr._value = value
-        try:
-            self.on_model_change(model_attr)
-        except Exception as e:
-            print('on_model_change! EXCEPTION:{}'.format(str(e)))
+        self.on_model_change(model_attr)
 
 
     def add_modifier(self, model_attr, value, source):
@@ -273,10 +273,11 @@ class CharacterModel(object):
         :param int value:
         :param unicode source:
         '''
-        if model_attr not in self._model:
+        if not self.has_model(model_attr):
             raise ModelAttributeNotFound(model_attr)
         model_attr_modifiers = self._modifiers.setdefault(model_attr, [])
         model_attr_modifiers.append(_ModelAttrModifier(value, source))
+        self.on_model_change(model_attr)
 
 
     def list_model_attrs(self, prefix):

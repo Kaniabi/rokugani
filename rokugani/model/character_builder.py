@@ -1,3 +1,4 @@
+from rokugani.model.advancements import AdvancementClan
 from rokugani.model.character_model import SkillModel, PerkModel
 
 
@@ -8,112 +9,6 @@ class RokuganiError(RuntimeError):
 
 class NoAdvancementError(RokuganiError):
     pass
-
-
-class _AdvancementBase(object):
-
-    NAME = '?'
-
-    def __init__(self, builder):
-        self._builder = builder
-        self._value = '?'
-
-    @property
-    def source(self):
-        return '{}:{}'.format(self.NAME, self._value)
-
-    def __str__(self):
-        return self.source
-
-
-class AdvancementSchool(_AdvancementBase):
-
-    NAME = 'school'
-
-    def __init__(self, builder, clanid):
-        super(AdvancementSchool, self).__init__(builder)
-        self._clanid = clanid
-        self.options = {
-            i.id : i
-            for i in self._builder.data_access.schools
-            if i.clanid == self._clanid and len(i.require) == 0
-        }
-
-    def set_value(self, value):
-        school = self.options.get(value)
-        if value is None:
-            raise KeyError(value)
-        self._value = value
-
-        # Honor
-        self._builder.add_modifier('ranks.honor', school.honor, self.source)
-        # Attrib
-        if school.trait in ('void',):
-            self._builder.add_modifier('rings.%s' % school.trait, 1, self.source)
-        else:
-            self._builder.add_modifier('attribs.%s' % school.trait, 1, self.source)
-        # Money
-        self._builder.add_modifier('money.bu', school.money[0], self.source)
-        self._builder.add_modifier('money.koku', school.money[1], self.source)
-        self._builder.add_modifier('money.zeni', school.money[2], self.source)
-        # Skills
-        for i_skill in school.skills:
-            model_attr = 'skills.{}'.format(i_skill.id)
-            self._builder.add_model(model_attr, SkillModel, attrib='attribs.agility')
-            self._builder.add_modifier(model_attr, i_skill.rank, self.source)
-        # Skills (wildcards)
-        for i_skill in school.skills_pc:
-            tags = [i.value for i in i_skill.wildcards]
-            #self._builder.add_advancement('skill:{}'.format(':'.join(tags)))
-        self._builder.set_value(self.NAME, value)
-
-
-class AdvancementFamily(_AdvancementBase):
-
-    NAME = 'family'
-
-    def __init__(self, builder, clanid):
-        super(AdvancementFamily, self).__init__(builder)
-        self._clanid = clanid
-        self.options = {
-            i.id : i
-            for i in self._builder.data_access.families
-            if i.clanid == self._clanid
-        }
-
-    def set_value(self, value):
-        family = self.options.get(value)
-        if family is None:
-            raise KeyError(value)
-        self._value = value
-
-        if family.trait in ('void',):
-            self._builder.add_modifier('rings.%s' % family.trait, 1, self.source)
-        else:
-            self._builder.add_modifier('attribs.%s' % family.trait, 1, self.source)
-        self._builder.set_value(self.NAME, value)
-
-
-class AdvancementClan(_AdvancementBase):
-
-    NAME = 'clan'
-
-    def __init__(self, builder):
-        super(AdvancementClan, self).__init__(builder)
-        self.options = {
-            i.id : i
-            for i in self._builder.data_access.clans
-        }
-
-    def set_value(self, value):
-        clan = self.options.get(value)
-        if clan is None:
-            raise KeyError(value)
-        self._value = value
-
-        self._builder.add_advancement(AdvancementFamily(self._builder, value))
-        self._builder.add_advancement(AdvancementSchool(self._builder, value))
-        self._builder.set_value(self.NAME, value)
 
 
 class CharacterBuilder(object):
@@ -147,6 +42,17 @@ class CharacterBuilder(object):
 
     def add_modifier(self, model_attr, value, source):
         return self.__character.add_modifier(model_attr, value, source)
+
+
+    def add_skill(self, skill_id, rank, source):
+        skill = self.data_access.find_skill(skill_id)
+
+        model_attr = 'skills.{}'.format(skill.id)
+        if not self.__character.has_model(model_attr):
+            attrib = 'attribs.{}'.format(skill.trait)
+            self.__character.add_model(model_attr, SkillModel, attrib=attrib)
+
+        self.__character.add_modifier(model_attr, rank, source)
 
 
     def list_model_attrs(self, prefix):
@@ -218,17 +124,3 @@ class CharacterBuilder(object):
             self.__character.add_modifier('xp', -cost, source)
         else:
             assert False, 'Unknown buy name {0}'.format(name)
-
-
-TECHS = {
-    'crab_the_way_of_the_crab' : [
-        dict(attr_model='skill.rolls', tag='agility', except_='stealth', source='heavy_armor', value=0),
-        dict(attr_model='rolls.damage', condition='wearing:heavy_weapon', value='1k0'),
-    ],
-    'crab_the_mountain_does_not_move' : [
-        dict(attr_model='damage_reduction', value='rings.earth'),
-    ],
-    'crab_two_pincers_one_mind' : [
-        dict(attr_model='actions.attack.action_type', value='simple'),
-    ],
-}

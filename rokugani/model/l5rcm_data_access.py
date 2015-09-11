@@ -27,3 +27,9 @@ class L5rcmDataAccess(object):
     @property
     def merits(self):
         return self.__dstore.merits
+
+    def find_skill(self, skill_id):
+        for i_skill in self.__dstore.skills:
+            if i_skill.id == skill_id:
+                return i_skill
+        raise KeyError(skill_id)
