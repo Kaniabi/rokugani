@@ -1,4 +1,4 @@
-from rokugani.model.character import CharacterModel
+from rokugani.model.character_model import CharacterModel
 
 
 def test_rings():

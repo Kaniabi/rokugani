@@ -63,10 +63,6 @@ class PerkModel(_ValueModelAttr):
     pass
 
 
-class InsightRankModel(_ValueModelAttr):
-    pass
-
-
 class DamageReductionModel(_ValueModelAttr):
     pass
 
@@ -86,6 +82,23 @@ class RingModel(_ModelAttr):
         value1 = self._model.get_value(self._attrib[0])
         value2 = self._model.get_value(self._attrib[1])
         return min(value1, value2)
+
+
+class InsightRankModel(_ModelAttr):
+
+    @property
+    def value(self):
+        rings = (
+            self._model.get_value('rings.earth')
+            + self._model.get_value('rings.air')
+            + self._model.get_value('rings.water')
+            + self._model.get_value('rings.fire')
+            + self._model.get_value('rings.void')
+        )
+        skills = 0
+        for i_name, i_skill in self._model.list_model_attrs('skills'):
+            skills += self._model.get_value(i_name)
+        return rings * 10 + skills
 
 
 class SkillModel(_ModelAttr):
@@ -142,16 +155,14 @@ class _ModelAttrModifier(object):
 
 class CharacterModel(object):
 
-    USAGE_TN = 'tn'
-    USAGE_ATTACK = 'attack'
-    USAGE_KIHO = 'kiho'
-    USAGE_KATA = 'kata'
-    USAGE_SPELL = 'spell'
-
     def __init__(self):
+        from ben10.foundation.callback import Callback
+
         self._model = {}
         self._fill_model()
         self._modifiers = {}
+
+        self.on_model_change = Callback()
 
 
     def _fill_model(self):
@@ -176,7 +187,7 @@ class CharacterModel(object):
         self._model['ranks.taint'] = RankModel(self, 0.0)
         self._model['ranks.infamy'] = RankModel(self, 0.0)
 
-        self._model['ranks.insight'] = InsightRankModel(self, 0)
+        self._model['ranks.insight'] = InsightRankModel(self)
 
         self._model['wounds.healty'] = WoundsModel(self, 0)
         self._model['wounds.healty.penalty'] = WoundsPenaltyModel(self, 0)
@@ -201,28 +212,22 @@ class CharacterModel(object):
         self._model['money.koku'] = MoneyModel(self, 0)
         self._model['money.zeni'] = MoneyModel(self, 0)
 
-        self._model['clan'] = ClanModel(self)
-        self._model['family'] = FamilyModel(self)
-        self._model['school'] = SchoolModel(self)
+        self._model['clan'] = ClanModel(self, '')
+        self._model['family'] = FamilyModel(self, '')
+        self._model['school'] = SchoolModel(self, '')
 
-        self._model['xp'] = XpModel(self, 30)
-
-        # self._model['skills'] = []
-        # self._model['kihos'] = []
-        # self._model['katas'] = []
-        # self._model['spells'] = []
+        self._model['xp'] = XpModel(self, 40)
 
 
     def add_model(self, model_attr, model_class, *args, **kwargs):
         self._model[model_attr] = model_class(self, *args, **kwargs)
 
 
-    def get_value(self, model_attr, usage=None):
+    def get_value(self, model_attr):
         '''
         Returns a model-attribute value considering all modifiers.
 
         :param unicode model_attr:
-        :param USAGE_XXX usage:
         :return int:
         '''
         result = self._model[model_attr].value
@@ -254,6 +259,10 @@ class CharacterModel(object):
         '''
         attr = self._model[model_attr]
         attr._value = value
+        try:
+            self.on_model_change(model_attr)
+        except Exception as e:
+            print('on_model_change! EXCEPTION:{}'.format(str(e)))
 
 
     def add_modifier(self, model_attr, value, source):
