@@ -1,6 +1,6 @@
 @echo off
 set PYTHONHOME=d:\shared\python3
-set PYTHONPATH=x:\rokugani
+set PYTHONPATH=x:\rokugani;x:\ben10\source\python
 set QTDIR=%PYTHONHOME%\Lib\site-packages\PyQt5
 set QT_PLUGIN_PATH=%QTDIR%\plugins
 set QML2_IMPORT_PATH=%QTDIR%\qml
