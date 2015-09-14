@@ -1,4 +1,5 @@
 *.pyc
 *_ui.py
+*.autosave
 /.venv/
 /.idea/

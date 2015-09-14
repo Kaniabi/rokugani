@@ -1,6 +1,7 @@
 from rokugani.model.character_model import CharacterModel
 
 
+
 def test_rings():
     ch = CharacterModel()
     assert ch.get_value('rings.earth') == 2
@@ -14,18 +15,18 @@ def test_rings():
 
 def test_wounds():
     ch = CharacterModel()
-    assert ch.get_value('wounds.healty') == 10
+    assert ch.get_value('wounds.healthy') == 10
     assert ch.get_value('wounds.injured') == 26
 
     ch.set_value('attribs.stamina', 3)
     ch.set_value('attribs.willpower', 3)
-    assert ch.get_value('wounds.healty') == 15
+    assert ch.get_value('wounds.healthy') == 15
     assert ch.get_value('wounds.injured') == 39
 
 
 def test_wounds_penalty():
     ch = CharacterModel()
-    assert ch.get_value('wounds.healty.penalty') == 0
+    assert ch.get_value('wounds.healthy.penalty') == 0
     assert ch.get_value('wounds.nicked.penalty') == 3
     assert ch.get_value('wounds.grazed.penalty') == 5
     assert ch.get_value('wounds.hurt.penalty') == 10

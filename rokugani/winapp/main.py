@@ -1,4 +1,5 @@
 # Configure environment variables here so we can execute this script from inside PyCharm.
+from PyQt5.QtCore import pyqtSlot
 import os
 os.environ['QTDIR'] = r'd:\shared\python3\lib\site-packages\PyQt5'
 os.environ['QT_PLUGIN_PATH'] = r'd:\shared\python3\lib\site-packages\PyQt5\plugins'
@@ -52,14 +53,19 @@ class RokuganiApplication(object):
 
 
     def _configure_controllers(self):
-        from rokugani.winapp.controller import ListWidgetController
-        from rokugani.winapp.controller import AdvancementsController
+        from rokugani.winapp.controller import ListWidgetController, AdvancementsController, DebugController
 
-        self._controllers['skills'] = ListWidgetController(self._view.lvSkills, self._builder, 'skills')
-        self._controllers['perks'] = ListWidgetController(self._view.lvPerks, self._builder, 'perks')
-        self._controllers['spells'] = ListWidgetController(self._view.lvSpells, self._builder, 'spells')
-        #self._controllers['debug'] = DebugController(self._view.lvDebug, self._builder)
+        self._controllers['skills'] = ListWidgetController(self._view.listwidget_skills, self._builder, 'skills')
+        self._controllers['spells'] = ListWidgetController(self._view.listwidget_spells, self._builder, 'spells')
+        self._controllers['merits'] = ListWidgetController(self._view.listwidget_merits, self._builder, 'merits')
+        self._controllers['flaws'] = ListWidgetController(self._view.listwidget_flaws, self._builder, 'flaws')
         self._controllers['advancements'] = AdvancementsController(self._view.lvBuild, self._builder)
+        self._controllers['debug'] = DebugController(self._view.lvDebug, self._builder)
+
+        self._view.button_buy_skill.clicked.connect(self._controllers['advancements'].buy_skill)
+        self._view.button_buy_merit.clicked.connect(self._controllers['advancements'].buy_merit)
+        self._view.button_buy_flaw.clicked.connect(self._controllers['advancements'].buy_flaw)
+        self._view.button_buy_trait.clicked.connect(self._controllers['advancements'].buy_trait)
 
 
     def _update_view(self):
@@ -96,6 +102,21 @@ class RokuganiApplication(object):
 
         for i_controller in self._controllers.values():
             i_controller.update_view()
+
+        self._view.browser_wounds.setText(
+            self._builder.expand(
+                '''
+                    Healthy ({wounds.healthy.penalty}): <B><BIG>{wounds.healthy}</BIG></B><BR/>
+                    Nicked ({wounds.nicked.penalty}): <B><BIG>{wounds.nicked}</BIG></B><BR/>
+                    Grazed ({wounds.grazed.penalty}): <B><BIG>{wounds.grazed}</BIG></B><BR/>
+                    Hurt ({wounds.hurt.penalty}): <B><BIG>{wounds.hurt}</BIG></B><BR/>
+                    Injured ({wounds.injured.penalty}): <B><BIG>{wounds.injured}</BIG></B><BR/>
+                    Crippled({wounds.crippled.penalty}): <B><BIG>{wounds.crippled}</BIG></B><BR/>
+                    Down ({wounds.down.penalty}): <B><BIG>{wounds.down}</BIG></B><BR/>
+                    Out: {wounds.out}</P>
+                '''
+            )
+        )
 
 
     def _update_view_editor(self, view, model_attr):

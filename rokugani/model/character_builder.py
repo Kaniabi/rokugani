@@ -16,8 +16,8 @@ class CharacterBuilder(object):
     DATADIR = 'x:/rokugani/.datadir'
 
     def __init__(self, character_model):
-        from .l5rcm_data_access import L5rcmDataAccess
-        self.data_access = L5rcmDataAccess('x:/l5rcm-data-packs')
+        from .data_access import DataAccess
+        self.data_access = DataAccess('x:/l5rcm-data-packs')
 
         self.__character = character_model
         self.__advancements = []
@@ -27,6 +27,17 @@ class CharacterBuilder(object):
 
 
     # Duplicate character interface to avoid external access to __character. Is this good?
+
+    def expand(self, text):
+        import re
+
+        def Replacer(matchobj):
+            key = matchobj.group(1)
+            return str(self.get_value(key))
+
+        expand_regex = re.compile('\{(.*?)\}')
+        return expand_regex.sub(Replacer, text)
+
 
     def get_value(self, name):
         return self.__character.get_value(name)
@@ -44,7 +55,7 @@ class CharacterBuilder(object):
         return self.__character.add_modifier(model_attr, value, source)
 
 
-    def add_skill(self, skill_id, rank, source):
+    def add_skill(self, skill_id, rank, source, buy=False):
         skill = self.data_access.find_skill(skill_id)
 
         model_attr = 'skills.{}'.format(skill.id)
@@ -53,6 +64,35 @@ class CharacterBuilder(object):
             self.__character.add_model(model_attr, SkillModel, attrib=attrib)
 
         self.__character.add_modifier(model_attr, rank, source)
+        if buy:
+            cost = self.__character.get_value(model_attr)
+            self.__character.add_modifier('xp', -cost, source)
+
+
+    def add_merit(self, merit_id, rank, source, buy=False):
+        merit = self.data_access.find_merit(merit_id)
+
+        model_attr = 'merits.{}'.format(merit.id)
+        if self.__character.has_model(model_attr):
+            raise KeyError(model_attr)
+        self.__character.add_model(model_attr, PerkModel, rank)
+
+        if buy:
+            cost = merit.ranks[0].value
+            self.__character.add_modifier('xp', -cost, source)
+
+
+    def add_flaw(self, flaw_id, rank, source, buy=False):
+        flaw = self.data_access.find_flaw(flaw_id)
+
+        model_attr = 'flaws.{}'.format(flaw.id)
+        if self.__character.has_model(model_attr):
+            raise KeyError(model_attr)
+        self.__character.add_model(model_attr, PerkModel, rank)
+
+        if buy:
+            cost = flaw.ranks[0].value
+            self.__character.add_modifier('xp', cost, source)
 
 
     def list_model_attrs(self, prefix):
@@ -82,7 +122,6 @@ class CharacterBuilder(object):
             raise NoAdvancementError(name)
 
         advancement.set_value(value)
-
 
     # Shopping
 

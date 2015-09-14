@@ -189,8 +189,8 @@ class CharacterModel(object):
 
         self._model['ranks.insight'] = InsightRankModel(self)
 
-        self._model['wounds.healty'] = WoundsModel(self, 0)
-        self._model['wounds.healty.penalty'] = WoundsPenaltyModel(self, 0)
+        self._model['wounds.healthy'] = WoundsModel(self, 0)
+        self._model['wounds.healthy.penalty'] = WoundsPenaltyModel(self, 0)
         self._model['wounds.nicked'] = WoundsModel(self, 1)
         self._model['wounds.nicked.penalty'] = WoundsPenaltyModel(self, 1)
         self._model['wounds.grazed'] = WoundsModel(self, 2)

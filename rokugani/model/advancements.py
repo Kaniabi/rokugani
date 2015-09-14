@@ -1,13 +1,4 @@
-from rokugani.model.character_model import SkillModel, PerkModel
 
-
-
-class RokuganiError(RuntimeError):
-    pass
-
-
-class NoAdvancementError(RokuganiError):
-    pass
 
 
 class _AdvancementBase(object):
@@ -40,14 +31,14 @@ class _AdvancementBase(object):
         return {}
 
 
-
 class AdvancementSkill(_AdvancementBase):
 
     NAME = 'skill'
 
-    def __init__(self, builder, tags=()):
+    def __init__(self, builder, tags=(), buy=False):
         super(AdvancementSkill, self).__init__(builder)
         self._tags = set(tags)
+        self._buy = buy
 
     def _get_options(self):
         return {
@@ -58,7 +49,70 @@ class AdvancementSkill(_AdvancementBase):
 
     def set_value(self, value):
         skill = self._set_option(value)
-        self._builder.add_skill(skill.id, 1, self.source)
+        self._builder.add_skill(skill.id, 1, self.source, buy=self._buy)
+
+
+class AdvancementMerit(_AdvancementBase):
+
+    NAME = 'merit'
+
+    def __init__(self, builder, tags=(), buy=False):
+        super(AdvancementMerit, self).__init__(builder)
+        self._tags = set(tags)
+        self._buy = buy
+
+    def _get_options(self):
+        return {
+            i.id : i
+            for i in self._builder.data_access.merits
+        }
+
+    def set_value(self, value):
+        merit = self._set_option(value)
+        self._builder.add_merit(merit.id, 1, self.source, buy=self._buy)
+
+
+class AdvancementFlaw(_AdvancementBase):
+
+    NAME = 'flaw'
+
+    def __init__(self, builder, tags=(), buy=False):
+        super(AdvancementFlaw, self).__init__(builder)
+        self._tags = set(tags)
+        self._buy = buy
+
+    def _get_options(self):
+        return {
+            i.id : i
+            for i in self._builder.data_access.flaws
+        }
+
+    def set_value(self, value):
+        flaw = self._set_option(value)
+        self._builder.add_flaw(flaw.id, 1, self.source, buy=self._buy)
+
+
+class AdvancementTrait(_AdvancementBase):
+
+    NAME = 'trait'
+
+    def __init__(self, builder, tags=(), buy=False):
+        super(AdvancementTrait, self).__init__(builder)
+        self._tags = set(tags)
+        self._buy = buy
+
+    def _get_options(self):
+        result = {
+            i.id : i
+            for i in self._builder.data_access.traits
+        }
+        rings = {i.id : i for i in self._builder.data_access.rings}
+        result['void'] = rings['void']
+        return result
+
+    def set_value(self, value):
+        flaw = self._set_option(value)
+        #self._builder.add_modifier(flaw.id, 1, self.source, buy=self._buy)
 
 
 class AdvancementSchool(_AdvancementBase):

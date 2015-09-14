@@ -1,5 +1,17 @@
-from PyQt5.QtCore import pyqtSlot, QModelIndex
 
+
+
+def handle_exception(f):
+
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+    wrapper.__name__ = f.__name__
+
+    return wrapper
 
 
 class ListWidgetController(object):
@@ -66,17 +78,9 @@ class AdvancementsController(object):
 
 
     def on_double_click(self, index):
-        from PyQt5 import QtWidgets
-
         try:
             advancement = self._builder.advancements[index.row()]
-
-            value, ok = QtWidgets.QInputDialog.getItem(
-                self._list_widget,
-                'SELECT',
-                advancement.NAME,
-                sorted(advancement.options),
-            )
+            value, ok = self._select_advancement(advancement)
             if ok:
                 advancement.set_value(value)
         except Exception as e:
@@ -88,3 +92,56 @@ class AdvancementsController(object):
         self._list_widget.clear()
         for i in self._builder.advancements:
             self._list_widget.addItem(str(i))
+
+
+    def buy_skill(self):
+        from rokugani.model.advancements import AdvancementSkill
+        self._buy_advancement(AdvancementSkill)
+
+
+    def buy_merit(self):
+        from rokugani.model.advancements import AdvancementMerit
+        self._buy_advancement(AdvancementMerit)
+
+
+    def buy_flaw(self):
+        from rokugani.model.advancements import AdvancementFlaw
+        self._buy_advancement(AdvancementFlaw)
+
+
+    def buy_trait(self):
+        from rokugani.model.advancements import AdvancementTrait
+        self._buy_advancement(AdvancementTrait)
+
+
+    @handle_exception
+    def _buy_advancement(self, advancement_class):
+        advancement = advancement_class(self._builder, buy=True)
+        value, ok = self._select_advancement(advancement)
+        if ok:
+            self._builder.advancements.append(advancement)
+            advancement.set_value(value)
+
+
+    def _select_advancement(self, advancement):
+        from PyQt5 import QtWidgets
+        return QtWidgets.QInputDialog.getItem(
+            self._list_widget,
+            'SELECT',
+            advancement.NAME,
+            sorted(advancement.options),
+        )
+
+
+
+
+class DebugController(object):
+
+    def __init__(self, list_widget, builder):
+        self._builder = builder
+        self._list_widget = list_widget
+
+    def update_view(self):
+        self._list_widget.clear()
+        for i_name, i_attr_model in self._builder.list_model_attrs(''):
+            self._list_widget.addItem('{}: {}'.format(i_name, i_attr_model.value))
