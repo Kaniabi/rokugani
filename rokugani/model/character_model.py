@@ -1,156 +1,6 @@
+from .model_attr import *
+from rokugani.model.model_attr import _ModelAttrModifier
 
-
-class ModelAttributeNotFound(KeyError):
-    pass
-
-
-class _ModelAttr(object):
-    '''
-    Base class for model attributes.
-    '''
-
-    def __init__(self, model):
-        self._model = model
-
-
-class AttribModel(_ModelAttr):
-
-    def __init__(self, model, value):
-        _ModelAttr.__init__(self, model)
-        self._value = value
-
-    @property
-    def value(self):
-        return self._value
-
-
-class VoidRingModel(AttribModel):
-    pass
-
-
-class _ValueModelAttr(_ModelAttr):
-
-    def __init__(self, model, value=None):
-        _ModelAttr.__init__(self, model)
-        self._value = value
-
-    @property
-    def value(self):
-        return self._value
-
-
-class ClanModel(_ValueModelAttr):
-    pass
-
-
-class FamilyModel(_ValueModelAttr):
-    pass
-
-
-class SchoolModel(_ValueModelAttr):
-    pass
-
-
-class MoneyModel(_ValueModelAttr):
-    pass
-
-
-class RankModel(_ValueModelAttr):
-    pass
-
-
-class PerkModel(_ValueModelAttr):
-    pass
-
-
-class DamageReductionModel(_ValueModelAttr):
-    pass
-
-
-class XpModel(_ValueModelAttr):
-    pass
-
-
-class RingModel(_ModelAttr):
-
-    def __init__(self, model, attrib1, attrib2):
-        _ModelAttr.__init__(self, model)
-        self._attrib = [attrib1, attrib2]
-
-    @property
-    def value(self):
-        value1 = self._model.get_value(self._attrib[0])
-        value2 = self._model.get_value(self._attrib[1])
-        return min(value1, value2)
-
-
-class InsightRankModel(_ModelAttr):
-
-    @property
-    def value(self):
-        rings = (
-            self._model.get_value('rings.earth')
-            + self._model.get_value('rings.air')
-            + self._model.get_value('rings.water')
-            + self._model.get_value('rings.fire')
-            + self._model.get_value('rings.void')
-        )
-        skills = 0
-        for i_name, i_skill in self._model.list_model_attrs('skills'):
-            skills += self._model.get_value(i_name)
-        return rings * 10 + skills
-
-
-class SkillModel(_ModelAttr):
-
-    def __init__(self, model, attrib):
-        _ModelAttr.__init__(self, model)
-        self._attrib = attrib
-        self._value = 0
-
-    @property
-    def value(self):
-        return self._value
-
-
-class WoundsModel(_ModelAttr):
-
-    USAGE = 'wounds'
-
-    def __init__(self, model, index):
-        _ModelAttr.__init__(self, model)
-        self._index = index
-
-    @property
-    def value(self):
-        earth_ring = self._model.get_value('rings.earth')
-        result = earth_ring * 5
-        for i in range(self._index):
-            result += earth_ring * 2
-        return result
-
-
-class WoundsPenaltyModel(_ModelAttr):
-
-    _VALUES = [0,3,5,10,15,20,40,None]
-
-    def __init__(self, model, index):
-        _ModelAttr.__init__(self, model)
-        self._index = index
-
-    @property
-    def value(self):
-        return self._VALUES[self._index]
-
-
-class _ModelAttrModifier(object):
-    '''
-    Attribute modifier, holding value and source.
-    '''
-
-    def __init__(self, value, source):
-        self.value = value
-        self.source = source
 
 
 class CharacterModel(object):
@@ -166,19 +16,21 @@ class CharacterModel(object):
 
 
     def _fill_model(self):
-        self._model['attribs.stamina'] = AttribModel(self, 2)
-        self._model['attribs.willpower'] = AttribModel(self, 2)
-        self._model['attribs.reflexes'] = AttribModel(self, 2)
-        self._model['attribs.awareness'] = AttribModel(self, 2)
-        self._model['attribs.strength'] = AttribModel(self, 2)
-        self._model['attribs.perception'] = AttribModel(self, 2)
-        self._model['attribs.agility'] = AttribModel(self, 2)
-        self._model['attribs.intelligence'] = AttribModel(self, 2)
+        self._model['character.name'] = CharacterInfoModel(self, '')
 
-        self._model['rings.earth'] = RingModel(self, 'attribs.stamina', 'attribs.willpower')
-        self._model['rings.air'] = RingModel(self, 'attribs.reflexes', 'attribs.awareness')
-        self._model['rings.water'] = RingModel(self, 'attribs.perception', 'attribs.strength')
-        self._model['rings.fire'] = RingModel(self, 'attribs.agility', 'attribs.intelligence')
+        self._model['traits.stamina'] = AttribModel(self, 2)
+        self._model['traits.willpower'] = AttribModel(self, 2)
+        self._model['traits.reflexes'] = AttribModel(self, 2)
+        self._model['traits.awareness'] = AttribModel(self, 2)
+        self._model['traits.strength'] = AttribModel(self, 2)
+        self._model['traits.perception'] = AttribModel(self, 2)
+        self._model['traits.agility'] = AttribModel(self, 2)
+        self._model['traits.intelligence'] = AttribModel(self, 2)
+
+        self._model['rings.earth'] = RingModel(self, 'traits.stamina', 'traits.willpower')
+        self._model['rings.air'] = RingModel(self, 'traits.reflexes', 'traits.awareness')
+        self._model['rings.water'] = RingModel(self, 'traits.perception', 'traits.strength')
+        self._model['rings.fire'] = RingModel(self, 'traits.agility', 'traits.intelligence')
         self._model['rings.void'] = VoidRingModel(self, 2)
 
         self._model['ranks.honor'] = RankModel(self, 0.0)
@@ -187,7 +39,8 @@ class CharacterModel(object):
         self._model['ranks.taint'] = RankModel(self, 0.0)
         self._model['ranks.infamy'] = RankModel(self, 0.0)
 
-        self._model['ranks.insight'] = InsightRankModel(self)
+        self._model['ranks.rank'] = InsightRankModel(self)
+        self._model['ranks.insight'] = InsightModel(self)
 
         self._model['wounds.healthy'] = WoundsModel(self, 0)
         self._model['wounds.healthy.penalty'] = WoundsPenaltyModel(self, 0)
@@ -206,6 +59,14 @@ class CharacterModel(object):
         self._model['wounds.out'] = WoundsModel(self, 7)
 #        self._model['wounds.out.penalty'] = WoundsPenaltyModel(self, 7)
 
+        self._model['armor_tn.base'] = ArmorTnBase(self)
+        self._model['armor_tn.reduction'] = ArmorTnReduction(self)
+        self._model['armor_tn.current'] = ArmorTnCurrent(self)
+
+        self._model['armor.tn_bonus'] = ArmorTnCurrent(self)
+        self._model['armor.quality'] = ArmorTnCurrent(self)
+        self._model['armor.notes'] = ArmorTnCurrent(self)
+
         self._model['damage_reduction'] = DamageReductionModel(self, 0)
 
         self._model['money.bu'] = MoneyModel(self, 0)
@@ -216,7 +77,12 @@ class CharacterModel(object):
         self._model['family'] = FamilyModel(self, '')
         self._model['school'] = SchoolModel(self, '')
 
-        self._model['xp'] = XpModel(self, 40)
+        self._model['xp'] = XpModel(self, 0)
+        self._model['xp_pool'] = XpModel(self, 40)
+
+        self._model['initiative.base'] = InitiativeModel(self, 'base')
+        self._model['initiative.modifiers'] = InitiativeModel(self, 'modifiers')
+        self._model['initiative.current'] = InitiativeModel(self, 'current')
 
 
     def has_model(self, model_attr):

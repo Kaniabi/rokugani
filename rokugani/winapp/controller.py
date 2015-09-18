@@ -1,4 +1,5 @@
-
+from PyQt5.QtCore import QObject, QEvent
+from PyQt5.QtCore import pyqtSignal
 
 
 def handle_exception(f):
@@ -12,6 +13,155 @@ def handle_exception(f):
     wrapper.__name__ = f.__name__
 
     return wrapper
+
+
+class Controller(QObject):
+
+    clicked = pyqtSignal()
+    doubleClicked = pyqtSignal()
+
+    def __init__(self, view, builder, model_attr):
+        super(Controller, self).__init__()
+        self._view = view
+        self._view.installEventFilter(self)
+        self._builder = builder
+        self._model_attr = model_attr
+        self._configure()
+
+    def _configure(self):
+        pass
+
+    def update_view(self):
+        self._view.setText(self._get_value())
+
+        explanation = ''
+        for i_source, i_value in self._builder.explain_value(self._model_attr):
+            explanation += '{0}&nbsp;{1}<br/>'.format(i_source, i_value)
+        if explanation:
+            self._view.setToolTip(explanation)
+
+    def _get_value(self):
+        value = self._builder.get_value(self._model_attr)
+        return str(value)
+
+    def eventFilter(self, obj, event):
+
+        if obj == self._view:
+            if event.type() == QEvent.MouseButtonRelease:
+                if obj.rect().contains(event.pos()):
+                    self.clicked.emit()
+                    return True
+            elif event.type() == QEvent.MouseButtonDblClick:
+                if obj.rect().contains(event.pos()):
+                    self.doubleClicked.emit()
+                    return True
+
+        return False
+
+    def _select_advancement(self, advancement):
+        from rokugani.winapp._dialogs import InputDialog
+        value, ok = InputDialog.select_item(
+            self._view,
+            str(advancement.__class__.__name__),
+            advancement.NAME,
+            advancement.options,
+        )
+        if ok:
+            advancement.set_value(value)
+
+
+    def _buy_advancement(self, advancement_class, **kwargs):
+        advancement = advancement_class(self._builder, buy=True, **kwargs)
+        self._select_advancement(advancement)
+
+
+
+class CharacterInfoController(Controller):
+
+    def _configure(self):
+        self.doubleClicked.connect(self._edit_value)
+
+    @handle_exception
+    def _edit_value(self, *args):
+        from rokugani.winapp._dialogs import InputDialog
+        current = self._builder.get_value(self._model_attr)
+        value, ok = InputDialog.select_text(
+            self._view,
+            'SELECT',
+            self._model_attr,
+            text=current
+        )
+        if ok:
+            self._builder.set_value(self._model_attr, value)
+
+
+class AdvancementController(Controller):
+
+    def _configure(self):
+        self.doubleClicked.connect(self._edit_value)
+
+    def _get_value(self):
+        advancement = self._builder.find_advancement(self._model_attr)
+        if advancement and advancement.value == '?':
+            return str(advancement)
+        return self._builder.get_value(self._model_attr)
+
+    @handle_exception
+    def _edit_value(self, *args):
+        advancement = self._builder.find_advancement(self._model_attr)
+        self._select_advancement(advancement)
+
+
+class TraitController(Controller):
+
+    def _configure(self):
+        self.doubleClicked.connect(self._edit_value)
+
+    @handle_exception
+    def _edit_value(self, *args):
+        self._builder.add_trait(
+            self._model_attr,
+            'buy by double-click',
+            buy=True
+        )
+
+
+class SkillController(Controller):
+
+    def __init__(self, view, builder, skill_index, skill_attr):
+        self._skill_index = skill_index
+        self._skill_attr = skill_attr
+        super(SkillController, self).__init__(view, builder, 'skills.[{}]'.format(skill_index))
+
+    def _configure(self):
+        self.doubleClicked.connect(self._edit_value)
+
+    def _get_value(self):
+        skills = self._builder.get_skills()
+        try:
+            skill_dict = skills[self._skill_index]
+        except IndexError:
+            return ''
+        else:
+            return str(skill_dict[self._skill_attr])
+
+    @handle_exception
+    def _edit_value(self, *args):
+        skills = self._builder.get_skills()
+        if self._skill_index >= len(skills):
+            from rokugani.model.advancements import AdvancementSkill
+            self._buy_advancement(AdvancementSkill, new_skills=True)
+            return
+
+        skill_dict = skills[self._skill_index]
+        advancement = skill_dict.get('advancement')
+        if advancement is not None:
+            self._select_advancement(advancement)
+            return
+
+        if self._skill_attr == 'rank':
+            self._builder.add_skill(skill_dict['id'], 1, buy=True)
+            return
 
 
 class ListWidgetController(object):
@@ -77,12 +227,11 @@ class AdvancementsController(object):
         self._list_widget.doubleClicked.connect(self.on_double_click)
 
 
+    @handle_exception
     def on_double_click(self, index):
         try:
             advancement = self._builder.advancements[index.row()]
-            value, ok = self._select_advancement(advancement)
-            if ok:
-                advancement.set_value(value)
+            self._select_advancement(advancement)
         except Exception as e:
             print('EXCEPTION:{}'.format(str(e)))
             raise
@@ -94,44 +243,28 @@ class AdvancementsController(object):
             self._list_widget.addItem(str(i))
 
 
-    def buy_skill(self):
+    @handle_exception
+    def buy_skill(self, *args):
         from rokugani.model.advancements import AdvancementSkill
         self._buy_advancement(AdvancementSkill)
 
 
-    def buy_merit(self):
+    @handle_exception
+    def buy_merit(self, *args):
         from rokugani.model.advancements import AdvancementMerit
         self._buy_advancement(AdvancementMerit)
 
 
-    def buy_flaw(self):
+    @handle_exception
+    def buy_flaw(self, *args):
         from rokugani.model.advancements import AdvancementFlaw
         self._buy_advancement(AdvancementFlaw)
 
 
-    def buy_trait(self):
+    @handle_exception
+    def buy_trait(self, *args):
         from rokugani.model.advancements import AdvancementTrait
         self._buy_advancement(AdvancementTrait)
-
-
-    @handle_exception
-    def _buy_advancement(self, advancement_class):
-        advancement = advancement_class(self._builder, buy=True)
-        value, ok = self._select_advancement(advancement)
-        if ok:
-            self._builder.advancements.append(advancement)
-            advancement.set_value(value)
-
-
-    def _select_advancement(self, advancement):
-        from PyQt5 import QtWidgets
-        return QtWidgets.QInputDialog.getItem(
-            self._list_widget,
-            'SELECT',
-            advancement.NAME,
-            sorted(advancement.options),
-        )
-
 
 
 

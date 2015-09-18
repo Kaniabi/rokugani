@@ -7,11 +7,11 @@ class _AdvancementBase(object):
 
     def __init__(self, builder):
         self._builder = builder
-        self._value = '?'
+        self.value = '?'
 
     @property
     def source(self):
-        return '{}:{}'.format(self.NAME, self._value)
+        return '{}:{}'.format(self.NAME, self.value)
 
     def __str__(self):
         return self.source
@@ -20,7 +20,7 @@ class _AdvancementBase(object):
         result = self.options.get(value)
         if result is None:
             raise KeyError(value)
-        self._value = value
+        self.value = value
         return result
 
     @property
@@ -35,21 +35,33 @@ class AdvancementSkill(_AdvancementBase):
 
     NAME = 'skill'
 
-    def __init__(self, builder, tags=(), buy=False):
+    def __init__(self, builder, tags=(), buy=False, school_skill=False, new_skills=False):
         super(AdvancementSkill, self).__init__(builder)
         self._tags = set(tags)
         self._buy = buy
+        self._new_skills = new_skills
+        self.school_skill = school_skill
 
     def _get_options(self):
+        skills = [i['id'] for i in self._builder.get_skills()]
+        result = self._builder.data_access.skills[:]
+        if self._new_skills:
+            result = [i for i in result if i.id not in skills]
         return {
             i.id : i
-            for i in self._builder.data_access.skills
+            for i in result
             if not self._tags or set(i.tags).intersection(self._tags)
         }
 
     def set_value(self, value):
         skill = self._set_option(value)
-        self._builder.add_skill(skill.id, 1, self.source, buy=self._buy)
+        self._builder.add_skill(
+            skill.id,
+            1,
+            self.source,
+            buy=self._buy,
+            school_skill=self.school_skill,
+        )
 
 
 class AdvancementMerit(_AdvancementBase):
@@ -111,8 +123,8 @@ class AdvancementTrait(_AdvancementBase):
         return result
 
     def set_value(self, value):
-        flaw = self._set_option(value)
-        #self._builder.add_modifier(flaw.id, 1, self.source, buy=self._buy)
+        trait = self._set_option(value)
+        self._builder.add_trait(trait.id, self.source, buy=self._buy)
 
 
 class AdvancementSchool(_AdvancementBase):
@@ -139,18 +151,30 @@ class AdvancementSchool(_AdvancementBase):
         if school.trait in ('void',):
             self._builder.add_modifier('rings.%s' % school.trait, 1, self.source)
         else:
-            self._builder.add_modifier('attribs.%s' % school.trait, 1, self.source)
+            self._builder.add_modifier('traits.%s' % school.trait, 1, self.source)
         # Money
         self._builder.add_modifier('money.bu', school.money[0], self.source)
         self._builder.add_modifier('money.koku', school.money[1], self.source)
         self._builder.add_modifier('money.zeni', school.money[2], self.source)
         # Skills
         for i_skill in school.skills:
-            self._builder.add_skill(i_skill.id, i_skill.rank, self.source)
+            self._builder.add_skill(
+                i_skill.id,
+                i_skill.rank,
+                source=self.source,
+                school_skill=True
+            )
         # Skills (wildcards)
         for i_skill in school.skills_pc:
             tags = [i.value for i in i_skill.wildcards]
-            self._builder.add_advancement(AdvancementSkill(self._builder, tags=tags))
+            self._builder.add_advancement(
+                AdvancementSkill(
+                    self._builder,
+                    tags=tags,
+                    school_skill=True,
+                    new_skills=True,
+                )
+            )
         self._builder.set_value(self.NAME, value)
 
 
@@ -175,7 +199,7 @@ class AdvancementFamily(_AdvancementBase):
         if family.trait in ('void',):
             self._builder.add_modifier('rings.%s' % family.trait, 1, self.source)
         else:
-            self._builder.add_modifier('attribs.%s' % family.trait, 1, self.source)
+            self._builder.add_modifier('traits.%s' % family.trait, 1, self.source)
         self._builder.set_value(self.NAME, value)
 
 

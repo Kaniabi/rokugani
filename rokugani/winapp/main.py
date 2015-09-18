@@ -1,55 +1,13 @@
-# Configure environment variables here so we can execute this script from inside PyCharm.
-from PyQt5.QtCore import pyqtSlot
-import os
-os.environ['QTDIR'] = r'd:\shared\python3\lib\site-packages\PyQt5'
-os.environ['QT_PLUGIN_PATH'] = r'd:\shared\python3\lib\site-packages\PyQt5\plugins'
-os.environ['QML2_IMPORT_PATH'] = r'd:\shared\python3\lib\site-packages\PyQt5\qml'
+from rokugani.winapp._base_app import BaseApplication
 
 
 
-class Constants(object):
-    app_name = 'Rokugani'
-    app_version = '0.1'
-    app_org = 'Kaniabi'
+class RokuganiApplication(BaseApplication):
 
 
-class RokuganiApplication(object):
-
-    def __init__(self):
-        self._app = None
-
-
-    def main(self, argv):
+    def _create_view(self):
         from rokugani.winapp.main_window import MainWindow
-        from rokugani.model.character_model import CharacterModel
-        from rokugani.model.character_builder import CharacterBuilder
-        from PyQt5 import QtWidgets, QtCore
-
-        self._app = QtWidgets.QApplication(argv)
-        QtCore.QCoreApplication.setApplicationName(Constants.app_name)
-        QtCore.QCoreApplication.setApplicationVersion(Constants.app_version)
-        QtCore.QCoreApplication.setOrganizationName(Constants.app_org)
-
-        self._view = MainWindow()
-        self._view.show()
-
-        self._character_model = CharacterModel()
-        self._builder = CharacterBuilder(self._character_model)
-
-        self._controllers = {}
-        self._configure_controllers()
-
-        self._update_view()
-
-        # Connect callbacks.
-        self._character_model.on_model_change.Register(self._model_changed)
-
-        return self._app.exec_()
-
-
-    def _model_changed(self, model_attr):
-        # Now, we update the entire interface, ignoring the model_attr.
-        self._update_view()
+        return MainWindow()
 
 
     def _configure_controllers(self):
@@ -77,20 +35,20 @@ class RokuganiApplication(object):
         self._update_view_editor(self._view.edInsight, 'ranks.insight')
 
         self._update_view_editor(self._view.edEarth, 'rings.earth')
-        self._update_view_editor(self._view.edStamina, 'attribs.stamina')
-        self._update_view_editor(self._view.edWillpower, 'attribs.willpower')
+        self._update_view_editor(self._view.edStamina, 'traits.stamina')
+        self._update_view_editor(self._view.edWillpower, 'traits.willpower')
 
         self._update_view_editor(self._view.edAir, 'rings.air')
-        self._update_view_editor(self._view.edReflexes, 'attribs.reflexes')
-        self._update_view_editor(self._view.edAwareness, 'attribs.awareness')
+        self._update_view_editor(self._view.edReflexes, 'traits.reflexes')
+        self._update_view_editor(self._view.edAwareness, 'traits.awareness')
 
         self._update_view_editor(self._view.edWater, 'rings.water')
-        self._update_view_editor(self._view.edStrength, 'attribs.strength')
-        self._update_view_editor(self._view.edPerception, 'attribs.perception')
+        self._update_view_editor(self._view.edStrength, 'traits.strength')
+        self._update_view_editor(self._view.edPerception, 'traits.perception')
 
         self._update_view_editor(self._view.edFire, 'rings.fire')
-        self._update_view_editor(self._view.edAgility, 'attribs.agility')
-        self._update_view_editor(self._view.edIntelligence, 'attribs.intelligence')
+        self._update_view_editor(self._view.edAgility, 'traits.agility')
+        self._update_view_editor(self._view.edIntelligence, 'traits.intelligence')
 
         self._update_view_editor(self._view.edVoid, 'rings.void')
 
@@ -99,9 +57,6 @@ class RokuganiApplication(object):
         self._update_view_editor(self._view.edStatus, 'ranks.status')
         self._update_view_editor(self._view.edTaint, 'ranks.taint')
         self._update_view_editor(self._view.edInfamy, 'ranks.infamy')
-
-        for i_controller in self._controllers.values():
-            i_controller.update_view()
 
         self._view.browser_wounds.setText(
             self._builder.expand(
@@ -113,27 +68,10 @@ class RokuganiApplication(object):
                     Injured ({wounds.injured.penalty}): <B><BIG>{wounds.injured}</BIG></B><BR/>
                     Crippled({wounds.crippled.penalty}): <B><BIG>{wounds.crippled}</BIG></B><BR/>
                     Down ({wounds.down.penalty}): <B><BIG>{wounds.down}</BIG></B><BR/>
-                    Out: {wounds.out}</P>
+                    Out: <B><BIG>{wounds.out}</BIG></B></P>
                 '''
             )
         )
-
-
-    def _update_view_editor(self, view, model_attr):
-        '''
-        Connects a view (widget) with a model-attribute from the character-model.
-        '''
-        # Set the view value.
-        value = self._character_model.get_value(model_attr)
-        value = str(value)
-        view.setText(value)
-
-        # Set the view tool-tip with the "value-explanation".
-        explanation = ''
-        for i_source, i_value in self._character_model.explain_value(model_attr):
-            explanation += '{0}&nbsp;{1}<br/>'.format(i_source, i_value)
-        if explanation:
-            view.setToolTip(explanation)
 
 
 
