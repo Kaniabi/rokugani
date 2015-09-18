@@ -126,7 +126,7 @@ class CharacterBuilder(object):
                 school_skill=school_skill,
             )
 
-        self.__character.add_modifier(model_attr, rank, source)
+        self.__character.add_modifier(model_attr, int(rank), source)
         if buy:
             cost = self.__character.get_value(model_attr)
             self.__character.add_modifier('xp', cost, source)
@@ -292,3 +292,21 @@ class CharacterBuilder(object):
     #         self.__character.add_modifier('xp', -cost, source)
     #     else:
     #         assert False, 'Unknown buy name {0}'.format(name)
+
+
+    def load(self, filename):
+        from ben10.foundation.string import SafeSplit
+
+        with open(filename, 'r') as iss:
+            for i_line in iss.readlines():
+                line = i_line.rstrip('\n\r ')
+                if not line:
+                    continue
+                if line.startswith('#'):
+                    continue
+                command, parameters = SafeSplit(line, ' ', 1)
+                parameters = parameters.split(' ')
+                if command in ('clan', 'family', 'school'):
+                    self.set_advancement_value(command, *parameters)
+                elif command == 'skill':
+                    self.add_skill(*parameters)

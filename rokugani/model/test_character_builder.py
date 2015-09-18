@@ -95,7 +95,7 @@ def test_get_skills():
     builder.set_advancement_value('school', 'crab_hida_bushi_school')
 
     skills = builder.get_skills()
-    assert len(skills) == 6
+    assert len(skills) == 7
     assert skills[0] == {
         'id': 'athletics',
         'model_attr': 'skills.athletics',
@@ -106,6 +106,7 @@ def test_get_skills():
         'type': 'bugei',
         'obs' : '',
         'roll' : '4k3',
+        'school' : 'X',
     }
 
 
@@ -135,3 +136,16 @@ def test_insight_rank():
     builder.add_trait('void')
     assert builder.get_value('ranks.insight') == 180
     assert builder.get_value('ranks.rank') == 3
+
+
+def test_load_save(embed_data):
+    ch = CharacterModel()
+    builder = CharacterBuilder(ch)
+
+    builder.load(embed_data['crab.rokugani'])
+    assert builder.get_value('clan') == 'crab'
+    assert builder.get_value('family') == 'crab_hida'
+    assert builder.get_value('school') == 'crab_hida_bushi_school'
+    skills = builder.get_skills()
+    assert len(skills) == 8
+
